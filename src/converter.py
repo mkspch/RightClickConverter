@@ -73,6 +73,61 @@ def convert_mp4_to_png_sequence(video_path):
         return False
 
 
+def convert_mp4_to_jpg_sequence(video_path, quality=90):
+    """
+    Converts an MP4 video file into a sequence of JPG images.
+
+    Args:
+        video_path (str): The full path to the input video file.
+        quality (int): JPEG quality from 1 (worst) to 100 (best).
+
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    print(f"DEBUG: FFMPEG_EXE resolved to: {FFMPEG_EXE}")
+    if not os.path.exists(FFMPEG_EXE):
+        print(f"ERROR: FFmpeg executable not found at '{FFMPEG_EXE}'.")
+        print("Please ensure FFmpeg is correctly installed and accessible at this path.")
+        return False
+    print(f"Using FFmpeg executable: {FFMPEG_EXE}")
+
+    if not os.path.exists(video_path):
+        print(f"Error: Video file not found at {video_path}")
+        return False
+
+    video_dir = os.path.dirname(video_path)
+    video_filename = os.path.basename(video_path)
+    base_name, _ = os.path.splitext(video_filename)
+
+    output_dir = os.path.join(video_dir, base_name)
+    os.makedirs(output_dir, exist_ok=True)
+
+    output_pattern = os.path.join(output_dir, f"{base_name}_%04d.jpg")
+
+    print(f"Starting conversion of {video_filename} to JPG sequence...")
+    command = [
+        FFMPEG_EXE, # Use the full path to ffmpeg
+        '-i', video_path,
+        '-q:v', str(quality), # Set JPEG quality
+        output_pattern
+    ]
+
+    print(f"FFmpeg Command: {' '.join(command)}") # Print the command
+    
+    try:
+        # Run FFmpeg without capturing output, so it prints directly to console
+        subprocess.run(command, check=True, capture_output=False, text=True) 
+        print(f"Successfully converted video to JPG sequence in {output_dir}")
+        return True
+    except subprocess.CalledProcessError as e:
+        print("Error during FFmpeg execution:")
+        print(f"Command: {' '.join(command)}")
+        print(f"Return Code: {e.returncode}")
+        print(f"Output: {e.stdout}")
+        print(f"Error Output: {e.stderr}")
+        return False
+
+
 def convert_sequence_to_mp4(first_file_path, framerate=25, output_path=None):
     """
     Converts an image sequence (e.g., PNG, EXR) into an MP4 video.

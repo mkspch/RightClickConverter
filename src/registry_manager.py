@@ -15,6 +15,7 @@ SUBMENU_KEY_FULL_PATH = r"Software\Classes\%s" % SUBMENU_KEY_NAME # No change to
 # List of submenu items: (display_text, script_name)
 SUBMENU_ITEMS = [
     ("VID > PNG", "entry_mp4_to_png.py"),
+    ("VID > JPG", "entry_mp4_to_jpg.py"), # New entry
     ("IMG > MP4", "entry_seq_to_mp4.py"),
     ("EXR > MP4 (ACEScg-sRGB)", "entry_exr_to_mp4.py"),
 ]
