@@ -55,7 +55,11 @@ def add_context_menu_entries():
                 winreg.SetValueEx(key, "", 0, winreg.REG_SZ, display_text)
                 
                 # Use %V to pass the selected file/folder path
-                command = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}" "%V"'
+                # For VID > JPG, pass a default quality of 90
+                if display_text == "VID > JPG":
+                    command = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}" "%V" --quality 90'
+                else:
+                    command = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}" "%V"'
                 with winreg.CreateKey(key, "command") as cmd_key:
                     winreg.SetValueEx(cmd_key, "", 0, winreg.REG_SZ, command)
             print(f"  Added submenu item: '{display_text}'")

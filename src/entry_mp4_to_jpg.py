@@ -1,5 +1,6 @@
 import sys
 import os
+import argparse # Import argparse for command-line arguments
 
 # This allows the script to find the 'converter' module
 # when called from an external process.
@@ -11,25 +12,26 @@ def main():
     """
     Entry point for the MP4 to JPG sequence conversion.
     """
-    try:
-        # The first argument (sys.argv[0]) is the script name.
-        # The second argument (sys.argv[1]) is the file path from the context menu.
-        if len(sys.argv) < 2:
-            print("Error: No file path provided.")
-            print("Press Enter to exit.") # Keeps the window open to see the error
-            input()
-            return
+    parser = argparse.ArgumentParser(description="Convert MP4 video to JPG sequence.")
+    parser.add_argument("video_path", help="Path to the input MP4 video file.")
+    parser.add_argument("--quality", type=int, default=90, 
+                        help="JPEG quality (1-100). Default is 90.")
 
-        video_path = sys.argv[1]
+    args = parser.parse_args()
+
+    try:
+        video_path = args.video_path
+        quality = args.quality
 
         if not os.path.exists(video_path):
             print(f"Error: The file '{video_path}' does not exist.")
-            print("Press Enter to exit.")
+            print("Press Enter to exit.") # Keeps the window open to see the error
             input()
             return
             
         print(f"File to convert: {video_path}")
-        success = converter.convert_mp4_to_jpg_sequence(video_path)
+        print(f"Using JPEG quality: {quality}")
+        success = converter.convert_mp4_to_jpg_sequence(video_path, quality=quality)
 
         if success:
             print("\nConversion finished successfully!")
