@@ -7,9 +7,9 @@ import winreg
 PYTHON_EXECUTABLE_RELATIVE = "python/python.exe"
 SCRIPTS_DIR_RELATIVE = "scripts/src"
 
-MENU_NAME = "RightClickConverter"
+MENU_NAME = "TS_Toolbox"
 MENU_TITLE = "TS_Toolbox"
-SUBMENU_KEY_NAME = "RightClickConverter.Menu"
+SUBMENU_KEY_NAME = "TS_Toolbox.Menu"
 SUBMENU_KEY_FULL_PATH = r"Software\Classes\%s" % SUBMENU_KEY_NAME # No change to key, just the display text
 
 # List of submenu items: (display_text, script_name)

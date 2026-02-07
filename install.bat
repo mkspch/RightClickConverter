@@ -16,7 +16,7 @@ echo [INFO] Setting up configuration...
 :: The root directory for the portable tools
 set "INSTALL_BASE_DIR=%LOCALAPPDATA%\Programs"
 :: The main directory for this specific toolbox
-set "TOOL_DIR=%INSTALL_BASE_DIR%\RightClickConverter"
+set "TOOL_DIR=%INSTALL_BASE_DIR%\TS_Toolbox"
 
 :: --- Tool URLs (Update these to the latest versions as needed) ---
 :: Make sure to use the 64-bit versions.
@@ -45,7 +45,7 @@ set "FFMPEG_DIR=%TOOL_DIR%\ffmpeg"
 ::            - luts/Log2_48_nits_Shaper_to_linear.spi1d
 ::            - luts/InvRRT.sRGB.Log2_48_nits_Shaper.spi3d
 ::            - luts/Log2_48_nits_Shaper.RRT.sRGB.spi3d
-set "SCRIPTS_REPO_URL=https://github.com/mkspch/RightClickConverter.git"
+set "SCRIPTS_REPO_URL=https://github.com/mkspch/TS_Toolbox.git"
 set "SCRIPTS_DIR=%TOOL_DIR%\scripts"
 
 :: --- Python Dependencies ---

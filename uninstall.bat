@@ -16,7 +16,7 @@ echo [INFO] Setting up configuration...
 :: The root directory for the portable tools
 set "INSTALL_BASE_DIR=%LOCALAPPDATA%\Programs"
 :: The main directory for this specific toolbox
-set "TOOL_DIR=%INSTALL_BASE_DIR%\RightClickConverter"
+set "TOOL_DIR=%INSTALL_BASE_DIR%\TS_Toolbox"
 set "PYTHON_DIR=%TOOL_DIR%\python"
 set "SCRIPTS_DIR=%TOOL_DIR%\scripts"
 
