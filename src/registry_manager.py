@@ -52,8 +52,8 @@ def add_context_menu_entries():
             with winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, command_key_path) as key:
                 winreg.SetValueEx(key, "", 0, winreg.REG_SZ, display_text)
                 
-                # Use %%V to pass the selected file/folder path
-                command = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}" "%%V"'
+                # Use %V to pass the selected file/folder path
+                command = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}" "%V"'
                 with winreg.CreateKey(key, "command") as cmd_key:
                     winreg.SetValueEx(cmd_key, "", 0, winreg.REG_SZ, command)
             print(f"  Added submenu item: '{display_text}'")
