@@ -89,22 +89,42 @@ def recursive_delete_key(hkey, sub_key_path):
 
 def remove_context_menu_entries():
     try:
-        # Try using DeleteTree first (Python 3.8+)
-        key_path = r"*\shell\%s" % MENU_NAME
-        winreg.DeleteTree(winreg.HKEY_CLASSES_ROOT, key_path)
+        # Attempt to remove using winreg.DeleteTree (Python 3.8+ specific)
+        print("Attempting to remove context menu entries using winreg.DeleteTree...")
+        
+        # Delete submenu definitions first (e.g., HKEY_CLASSES_ROOT\RightClickConverter.Menu)
         winreg.DeleteTree(winreg.HKEY_CLASSES_ROOT, SUBMENU_KEY)
-        print("Context menu entries removed successfully using DeleteTree.")
+        print(f"Removed submenu key: '{SUBMENU_KEY}'")
+
+        # Delete top-level menu entry (e.g., HKEY_CLASSES_ROOT\*\shell\RightClickConverter)
+        # We need to open the parent key 'HKEY_CLASSES_ROOT\*\shell' first, then delete 'RightClickConverter'
+        top_level_parent_key_path = r"*\shell"
+        try:
+            with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, top_level_parent_key_path, 0, winreg.KEY_ALL_ACCESS) as parent_key:
+                winreg.DeleteKey(parent_key, MENU_NAME)
+            print(f"Removed top-level menu: '{MENU_TITLE}'")
+        except FileNotFoundError:
+            print(f"Top-level menu entry '{MENU_TITLE}' not found under '{top_level_parent_key_path}', nothing to remove.")
+        
+        print("Context menu entries removed successfully using winreg.DeleteTree.")
         return True
-    except AttributeError: # DeleteTree not found, fall back to recursive deletion
+    except AttributeError:
+        # Fallback for Python versions < 3.8 or environments where DeleteTree is missing
         print("winreg.DeleteTree not available, falling back to recursive deletion.")
         try:
-            key_path = r"*\shell\%s" % MENU_NAME
-            recursive_delete_key(winreg.HKEY_CLASSES_ROOT, key_path)
+            # Delete submenu definitions first
             recursive_delete_key(winreg.HKEY_CLASSES_ROOT, SUBMENU_KEY)
+            print(f"Removed submenu key: '{SUBMENU_KEY}' using recursive_delete_key.")
+
+            # Delete top-level menu entry using recursive fallback
+            top_level_parent_key_path = r"*\shell"
+            recursive_delete_key(winreg.HKEY_CLASSES_ROOT, os.path.join(top_level_parent_key_path, MENU_NAME))
+            print(f"Removed top-level menu: '{MENU_TITLE}' using recursive_delete_key.")
+
             print("Context menu entries removed successfully using recursive deletion.")
             return True
         except Exception as e:
-            print(f"Error during recursive deletion: {e}")
+            print(f"Error during recursive deletion fallback: {e}")
             return False
     except FileNotFoundError:
         print("Registry entries not found, nothing to remove.")
