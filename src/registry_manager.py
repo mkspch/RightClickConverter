@@ -20,7 +20,9 @@ SUBMENU_ITEMS = [
     ("EXR > MP4 (ACEScg-sRGB)", "entry_exr_to_mp4.py"),
     ("IMG > Half Size", "entry_img_half_size.py"),
     ("IMG > Resize", "entry_img_resize.py"),
-    ("IMG > Contact Sheet", "entry_img_contactsheet.py"), # Re-added
+    ("IMG > Contact Sheet", "entry_img_contactsheet.py"),
+    ("VID > Contact Sheet", "entry_video_contact_sheet.py"),
+    ("VID > Resize", "entry_vid_resize.py"), # New entry
 ]
 
 def get_install_root_path():
@@ -28,15 +30,6 @@ def get_install_root_path():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     install_root = os.path.abspath(os.path.join(script_dir, os.pardir, os.pardir))
     return install_root
-
-# --- SendTo functions (removed as per plan) ---
-# def add_sendto_entry():
-#     # ... (removed content) ...
-#     return True
-# def remove_sendto_entry():
-#     # ... (removed content) ...
-#     return True
-
 
 def add_context_menu_entries():
     install_root = get_install_root_path()
@@ -67,10 +60,14 @@ def add_context_menu_entries():
                     command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}" "%V" --quality 90'
                 elif display_text == "IMG > Contact Sheet": # For contact sheet, pywin32 fetches files
                     command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}"' # No args needed, script gets selection
+                elif display_text == "VID > Contact Sheet": # For video contact sheet, pywin32 fetches files
+                    command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}"' # No args needed, script gets selection
+                elif display_text == "VID > Resize": # For video resize, pywin32 fetches files
+                    command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}"' # No args needed, script gets selection
                 else:
                     command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}" "%V"'
                 
-                command = f'cmd.exe /c "{command_args}"'
+                command = f'cmd.exe /c "{command_args}"' # Use cmd.exe /c here for production
                 with winreg.CreateKey(key, "command") as cmd_key:
                     winreg.SetValueEx(cmd_key, "", 0, winreg.REG_SZ, command)
             print(f"  Added submenu item: '{display_text}'")
@@ -155,13 +152,9 @@ if __name__ == "__main__":
     if command == "install":
         if not add_context_menu_entries():
             sys.exit(1)
-        # if not add_sendto_entry(): # Removed SendTo install
-        #     sys.exit(1)
     elif command == "uninstall":
         if not remove_context_menu_entries():
             sys.exit(1)
-        # if not remove_sendto_entry(): # Removed SendTo uninstall
-        #     sys.exit(1)
     else:
         print(f"Invalid command: {command}. Use 'install' or 'uninstall'.")
         sys.exit(1)
