@@ -15,6 +15,7 @@ SUBMENU_KEY_FULL_PATH = r"Software\Classes\%s" % SUBMENU_KEY_NAME
 # List of submenu items for regular right-click (including Contact Sheet)
 SUBMENU_ITEMS = [
     ("EXR > MP4 (ACEScg-sRGB)", "entry_exr_to_mp4.py"),
+    ("EXR > JPG", "entry_exr_to_jpg.py"),
     ("EXR > Split AOVs", "entry_exr_split_aovs.py"),
     ("IMG > MP4", "entry_seq_to_mp4.py"),
     ("IMG > Resize", "entry_img_resize.py"),

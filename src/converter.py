@@ -274,6 +274,98 @@ def convert_exr_to_srgb_mp4(first_file_path, framerate=25):
         import traceback
         traceback.print_exc()
         return False
+
+
+def convert_exr_to_srgb_jpg_sequence(first_file_path, quality=90):
+    """
+    Converts an EXR image sequence (ACEScg) to an sRGB JPG image sequence,
+    applying OCIO color management.
+
+    Args:
+        first_file_path (str): Path to the first file in the EXR sequence.
+        quality (int): JPEG quality (0-100). Default is 90.
+
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    if not OCIO or not OIIO:
+        print("Error: PyOpenColorIO or OpenImageIO not available. Cannot perform EXR to JPG conversion.")
+        return False
+
+    exr_files, start_frame, sequence_pattern = utils.find_sequence_files(first_file_path)
+
+    if not exr_files:
+        print("Error: Could not find EXR sequence.")
+        return False
+        
+    output_base_dir = os.path.dirname(first_file_path)
+    base_name = os.path.basename(sequence_pattern).split('%')[0].rstrip('._-')
+    output_sequence_dir = os.path.join(output_base_dir, f"{base_name}_sRGB_JPG")
+    os.makedirs(output_sequence_dir, exist_ok=True)
+
+    ocio_config_path = os.path.join(os.path.dirname(__file__), 'config', 'aces_1.2', 'config.ocio')
+    if not os.path.exists(ocio_config_path):
+        print(f"CRITICAL ERROR: OCIO config not found at {ocio_config_path}")
+        return False
+
+    try:
+        config = OCIO.Config.CreateFromFile(ocio_config_path)
+        processor = config.getProcessor("ACEScg", "Output - sRGB")
+    except Exception as e:
+        print(f"OCIO Error: Could not set up color processor. {e}")
+        return False
+
+    print(f"Starting color conversion of EXR sequence to sRGB JPG sequence in {output_sequence_dir}...")
+    
+    try:
+        for i, exr_path in enumerate(exr_files):
+            print(f"  Processing frame {start_frame + i} ({i+1}/{len(exr_files)}): {os.path.basename(exr_path)}")
+            
+            # Read EXR using OIIO
+            img_buf = OIIO.ImageBuf(exr_path)
+
+            # Ensure we're working with RGB channels (skip alpha if present for JPG)
+            # OIIO.ImageBufAlgo.channels will ensure a 3-channel image if original is RGBA or more.
+            # It handles cases where there are fewer than 3 channels gracefully.
+            OIIO.ImageBufAlgo.channels(img_buf, img_buf, (0,1,2))
+            
+            # Apply OCIO color conversion
+            success_ocio = OIIO.ImageBufAlgo.colorconvert(img_buf, img_buf, "ACEScg", "Output - sRGB", colorconfig=ocio_config_path)
+            if not success_ocio:
+                print(f"OCIO Color Convert failed for frame {start_frame + i}. Check OCIO config and colorspace names.")
+                return False
+
+            # Get pixel data as float (OIIO's default for color conversion output)
+            pixels_float = img_buf.get_pixels() # Returns numpy array, typically float32
+            
+            # Convert float [0.0, 1.0] to uint8 [0, 255] for JPEG
+            # Clamp values to [0, 1] before scaling to avoid issues with out-of-range floats
+            pixels_uint8 = np.clip(pixels_float, 0.0, 1.0) * 255.0
+            pixels_uint8 = pixels_uint8.astype(np.uint8)
+
+            # Create PIL Image
+            # Ensure it's RGB mode, not RGBA if an alpha channel somehow made it through
+            if pixels_uint8.shape[-1] == 4: # If it's RGBA, convert to RGB
+                pil_img = Image.fromarray(pixels_uint8[:,:,:3], 'RGB')
+            else: # Assume RGB
+                pil_img = Image.fromarray(pixels_uint8, 'RGB')
+
+
+            # Construct output filename
+            frame_num_str = str(start_frame + i).zfill(len(str(len(exr_files) + start_frame -1))) # Matches original padding
+            output_jpg_path = os.path.join(output_sequence_dir, f"{base_name}_{frame_num_str}.jpg")
+            
+            # Save as JPEG
+            pil_img.save(output_jpg_path, quality=quality)
+
+        print(f"Successfully converted EXR sequence to sRGB JPG sequence in {output_sequence_dir}")
+        return True
+
+    except Exception as e:
+        print(f"An error occurred during the EXR to JPG conversion process: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 def convert_img_half_size(image_path):
     """
     Scales down the selected image file to half its size, maintaining aspect ratio.
