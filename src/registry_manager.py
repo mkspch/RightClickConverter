@@ -32,6 +32,10 @@ def get_install_root_path():
     install_root = os.path.abspath(os.path.join(script_dir, os.pardir, os.pardir))
     return install_root
 
+def get_icon_path(install_root, icon_filename):
+    """Constructs the full path to an icon file."""
+    return os.path.join(install_root, SCRIPTS_DIR_RELATIVE, "icons", icon_filename)
+
 def add_context_menu_entries():
     install_root = get_install_root_path()
     python_exe = os.path.join(install_root, PYTHON_EXECUTABLE_RELATIVE)
@@ -49,12 +53,28 @@ def add_context_menu_entries():
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as key:
             winreg.SetValueEx(key, "", 0, winreg.REG_SZ, MENU_TITLE)
             winreg.SetValueEx(key, "ExtendedSubCommandsKey", 0, winreg.REG_SZ, SUBMENU_KEY_NAME)
-        print(f"Added top-level menu: '{MENU_TITLE}'")
+            # Set icon for the top-level menu
+            top_level_icon_path = get_icon_path(install_root, "orange.ico") # Using orange for top-level menu
+            winreg.SetValueEx(key, "Icon", 0, winreg.REG_SZ, f"{top_level_icon_path},0")
+        print(f"Added top-level menu: '{MENU_TITLE}' with icon.")
 
         for display_text, script_name in SUBMENU_ITEMS:
             command_key_path = r"%s\shell\%s" % (SUBMENU_KEY_FULL_PATH, display_text.replace(" ", ""))
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, command_key_path) as key:
                 winreg.SetValueEx(key, "", 0, winreg.REG_SZ, display_text)
+                
+                # Determine icon based on category
+                icon_file = ""
+                if display_text.startswith("EXR"):
+                    icon_file = "blue.ico"
+                elif display_text.startswith("IMG"):
+                    icon_file = "magenta.ico"
+                elif display_text.startswith("VID"):
+                    icon_file = "black.ico"
+                
+                if icon_file:
+                    full_icon_path = get_icon_path(install_root, icon_file)
+                    winreg.SetValueEx(key, "Icon", 0, winreg.REG_SZ, f"{full_icon_path},0")
                 
                 # Wrap all commands in cmd.exe /K to keep the window open
                 if display_text == "VID > JPG":
