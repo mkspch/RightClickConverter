@@ -39,7 +39,7 @@ set "FFMPEG_DIR=%TOOL_DIR%\ffmpeg"
 :: Real-ESRGAN (ncnn Vulkan portable)
 ::set "REALESRGAN_URL=https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip"
 ::set "REALESRGAN_ZIP=realesrgan.zip"
-set "LOCAL_REALESRGAN_ZIP_SOURCE=E:\USER\Markus_Stuff\realesrgan.zip"
+set "LOCAL_REALESRGAN_ZIP_SOURCE=E:\USER\Markus_Stuff"
 set "REALESRGAN_ZIP=realesrgan.zip"
 set "REALESRGAN_DIR=%TOOL_DIR%\realesrgan"
 set "REALESRGAN_EXE_NAME=realesrgan-ncnn-vulkan.exe"
@@ -91,9 +91,9 @@ curl -L "%GIT_URL%" -o "%TOOL_DIR%\%GIT_EXE%"
 echo    Downloading FFmpeg...
 curl -L "%FFMPEG_URL%" -o "%TOOL_DIR%\%FFMPEG_ZIP%"
 echo    Copying Real-ESRGAN from local source...
-robocopy "C:\Users\nhb\Documents\_DEV\TS_Toolbox\" "%TOOL_DIR%" "%REALESRGAN_ZIP%" > nul
+robocopy "%LOCAL_REALESRGAN_ZIP_SOURCE%" "%TOOL_DIR%" "%REALESRGAN_ZIP%" > nul
 if %errorlevel% geq 8 (
-    echo [ERROR] Failed to copy Real-ESRGAN from local source. Please ensure the file exists at C:\Users\nhb\Documents\_DEV\TS_Toolbox\realesrgan.zip
+    echo [ERROR] Failed to copy Real-ESRGAN from local source. Please ensure the file exists at %LOCAL_REALESRGAN_ZIP_SOURCE%\realesrgan.zip
     goto:error
 )
 echo    Done.
