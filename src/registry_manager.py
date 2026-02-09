@@ -14,16 +14,16 @@ SUBMENU_KEY_FULL_PATH = r"Software\Classes\%s" % SUBMENU_KEY_NAME
 
 # List of submenu items for regular right-click (including Contact Sheet)
 SUBMENU_ITEMS = [
+    ("EXR > MP4 (ACEScg-sRGB)", "entry_exr_to_mp4.py"),
+    ("EXR > Split AOVs", "entry_exr_split_aovs.py"),
+    ("IMG > MP4", "entry_seq_to_mp4.py"),
+    ("IMG > Resize", "entry_img_resize.py"),
+    ("IMG > Half Size", "entry_img_half_size.py"),
+    ("IMG > Contact Sheet", "entry_img_contactsheet.py"),
     ("VID > PNG", "entry_mp4_to_png.py"),
     ("VID > JPG", "entry_mp4_to_jpg.py"),
-    ("IMG > MP4", "entry_seq_to_mp4.py"),
-    ("EXR > MP4 (ACEScg-sRGB)", "entry_exr_to_mp4.py"),
-    ("IMG > Half Size", "entry_img_half_size.py"),
-    ("IMG > Resize", "entry_img_resize.py"),
-    ("IMG > Contact Sheet", "entry_img_contactsheet.py"),
+    ("VID > Resize", "entry_vid_resize.py"),
     ("VID > Contact Sheet", "entry_video_contact_sheet.py"),
-    ("VID > Resize", "entry_vid_resize.py"), # New entry
-    ("EXR > Split AOVs", "entry_exr_split_aovs.py"), # New entry
 ]
 
 def get_install_root_path():
