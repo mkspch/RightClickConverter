@@ -16,8 +16,18 @@ except ImportError:
     OCIO = None
     OIIO = None
 
-FFMPEG_EXE = r"C:\Users\nhb\AppData\Local\Programs\TS_Toolbox\ffmpeg\bin\ffmpeg.exe"
-FFPROBE_EXE = r"C:\Users\nhb\AppData\Local\Programs\TS_Toolbox\ffmpeg\bin\ffprobe.exe"
+def _get_tool_path(tool_name):
+    local_app_data = os.environ.get('LOCALAPPDATA')
+    if not local_app_data:
+        print("CRITICAL ERROR: LOCALAPPDATA environment variable not found.")
+        return None
+
+    # Construct the path based on the install.bat logic
+    tool_path = os.path.join(local_app_data, 'Programs', 'TS_Toolbox', tool_name, 'bin', f'{tool_name}.exe')
+    return tool_path
+
+FFMPEG_EXE = _get_tool_path('ffmpeg')
+FFPROBE_EXE = _get_tool_path('ffprobe')
 
 def convert_mp4_to_png_sequence(video_path):
     print(f"DEBUG: FFMPEG_EXE resolved to: {FFMPEG_EXE}")
@@ -456,12 +466,11 @@ def create_video_contact_sheet(video_paths, output_filename="video_contact_sheet
                 continue
 
             probe_cmd_list = [
-                f'"{FFPROBE_EXE}"', '-v', 'error', '-select_streams', 'v:0',
-                '-show_entries', 'stream=width,height,duration', '-of', 'default=noprint_wrappers=1', f'"{video_path}"'
+                FFPROBE_EXE, '-v', 'error', '-select_streams', 'v:0',
+                '-show_entries', 'stream=width,height,duration', '-of', 'default=noprint_wrappers=1', video_path
             ]
-            probe_cmd = " ".join(probe_cmd_list)
-            print(f"DEBUG: FFPROBE_EXE command: {probe_cmd}")
-            probe_output = subprocess.check_output(probe_cmd, stderr=subprocess.STDOUT, text=True, shell=True)
+            print(f"DEBUG: FFPROBE_EXE command: {' '.join(probe_cmd_list)}")
+            probe_output = subprocess.check_output(probe_cmd_list, stderr=subprocess.STDOUT, text=True)
             print(f"DEBUG: FFPROBE_EXE output for {os.path.basename(video_path)}: '{probe_output.strip()}'")
 
             if not probe_output.strip():
@@ -649,20 +658,19 @@ def convert_vid_resize(video_path, new_width):
         # FFmpeg command to resize video, maintaining aspect ratio (-2 for height means auto-calculate even number)
         # and copy audio stream.
         ffmpeg_cmd_list = [
-            f'"{FFMPEG_EXE}"', '-y', # Overwrite output file without asking
-            '-i', f'"{video_path}"',
-            '-vf', f'"scale={new_width}:-2"', # Resize filter
-            '-c:a', 'copy', # Copy audio stream
-            '-c:v', 'libx264', # Encode video with libx264
-            '-pix_fmt', 'yuv420p', # Pixel format for wider compatibility
-            '-crf', '23', # Quality setting, 23 is a good default
-            '-preset', 'medium', # Balanced speed/quality
-            f'"{output_path}"'
+            FFMPEG_EXE, '-y',
+            '-i', video_path,
+            '-vf', f'scale={new_width}:-2',
+            '-c:a', 'copy',
+            '-c:v', 'libx264',
+            '-pix_fmt', 'yuv420p',
+            '-crf', '23',
+            '-preset', 'medium',
+            output_path
         ]
-        ffmpeg_cmd = " ".join(ffmpeg_cmd_list)
-        print(f"Final FFmpeg Command: {ffmpeg_cmd}")
+        print(f"Final FFmpeg Command: {' '.join(ffmpeg_cmd_list)}")
 
-        subprocess.run(ffmpeg_cmd, check=True, capture_output=True, text=True, shell=True)
+        subprocess.run(ffmpeg_cmd_list, check=True, capture_output=True, text=True)
         
         print(f"Successfully resized video '{os.path.basename(video_path)}' to {new_width}px width: {os.path.basename(output_path)}")
         return True

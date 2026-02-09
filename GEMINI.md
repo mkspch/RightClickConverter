@@ -11,10 +11,10 @@ The core conversion logic, residing in `src/converter.py`, handles:
 *   EXR image sequence (ACEScg) to sRGB MP4 video conversion, incorporating advanced color management via OCIO and efficient direct piping of processed pixel data to FFmpeg.
 *   Image half-size scaling.
 *   Image resizing to a specified width.
-*   Image contact sheet creation from multiple selected images.
-*   Video contact sheet creation from multiple selected videos.
+*   **Image contact sheet creation from multiple selected images (now fully functional).**
+*   **Video contact sheet creation from multiple selected videos (now dynamically scales to the maximum height of selected videos, maintaining aspect ratios).**
 *   Video resizing to a specified width.
-*   Splitting multi-part EXR files into individual AOV files.
+*   **Splitting EXR files into individual AOV files (now robustly handles both multi-subimage and single-subimage EXRs with packed AOVs, including Cryptomatte channels).**
 
 The toolbox integrates seamlessly with the Windows context menu. Users can initiate conversions by simply right-clicking on selected files, accessing a "TS_Toolbox" main menu with specific conversion options. The management of these context menu entries is handled by `src/registry_manager.py`, which is designed to support non-administrative installation for the current user. Utility functions in `src/utils.py` assist in the detection and handling of image sequences.
 
