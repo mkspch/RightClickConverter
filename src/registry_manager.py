@@ -92,7 +92,7 @@ def add_context_menu_entries():
                 else:
                     command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}" "%V"'
                 
-                command = f'cmd.exe /k "{command_args}"' # Use cmd.exe /k here to keep the window open for debugging
+                command = f'cmd.exe /c "{command_args}"' # Use cmd.exe /k here to keep the window open for debugging
                 with winreg.CreateKey(key, "command") as cmd_key:
                     winreg.SetValueEx(cmd_key, "", 0, winreg.REG_SZ, command)
             print(f"  Added submenu item: '{display_text}'")
