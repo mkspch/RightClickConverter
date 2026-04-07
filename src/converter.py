@@ -231,33 +231,48 @@ def convert_exr_to_srgb_mp4(first_file_path, framerate=25):
 
     print("Starting color conversion and piping to FFmpeg...")
     try:
-        for i, exr_path in enumerate(exr_files):
-            print(f"  Processing frame {start_frame + i} ({i+1}/{len(exr_files)}): {os.path.basename(exr_path)}")
-            
-            img_buf = OIIO.ImageBuf(exr_path)
+        import concurrent.futures
 
-            OIIO.ImageBufAlgo.channels(img_buf, img_buf, (0,1,2))
-            
-            success_ocio = OIIO.ImageBufAlgo.colorconvert(img_buf, img_buf, "ACEScg", "Output - sRGB", colorconfig=ocio_config_path)
-            if not success_ocio:
-                print(f"OCIO Color Convert failed for frame {start_frame + i}. Check OCIO config and colorspace names.")
-                return False
+        def process_frame(args):
+            i, exr_path = args
+            try:
+                print(f"  Processing frame {start_frame + i} ({i+1}/{len(exr_files)}): {os.path.basename(exr_path)}")
 
-            if img_buf.spec().width != output_width or img_buf.spec().height != output_height:
-                print(f"DEBUG: Resizing frame {start_frame + i} from {img_buf.spec().width}x{img_buf.spec().height} to {output_width}x{output_height}")
-                img_buf = OIIO.ImageBufAlgo.resize(img_buf, "box", roi=OIIO.ROI(0, output_width, 0, output_height))
+                img_buf = OIIO.ImageBuf(exr_path)
+                OIIO.ImageBufAlgo.channels(img_buf, img_buf, (0,1,2))
 
-            pixels_raw = img_buf.get_pixels(OIIO.UINT16)
+                success_ocio = OIIO.ImageBufAlgo.colorconvert(img_buf, img_buf, "ACEScg", "Output - sRGB", colorconfig=ocio_config_path)
+                if not success_ocio:
+                    return (False, f"OCIO Color Convert failed for frame {start_frame + i}. Check OCIO config and colorspace names.", None)
 
-            print(f"DEBUG: Frame {start_frame + i} - Pixels raw shape: {pixels_raw.shape}, dtype: {pixels_raw.dtype}")
-            expected_bytes = output_width * output_height * 3 * 2
-            actual_bytes = len(pixels_raw.tobytes())
-            print(f"DEBUG: Frame {start_frame + i} - Pixels raw byte length: {actual_bytes}, Expected: {expected_bytes}")
-            if actual_bytes != expected_bytes:
-                print("CRITICAL ERROR: Mismatch in pixel data byte length!")
-                return False
+                if img_buf.spec().width != output_width or img_buf.spec().height != output_height:
+                    print(f"DEBUG: Resizing frame {start_frame + i} from {img_buf.spec().width}x{img_buf.spec().height} to {output_width}x{output_height}")
+                    img_buf = OIIO.ImageBufAlgo.resize(img_buf, "box", roi=OIIO.ROI(0, output_width, 0, output_height))
 
-            ffproc.stdin.write(pixels_raw.tobytes())
+                pixels_raw = img_buf.get_pixels(OIIO.UINT16)
+
+                expected_bytes = output_width * output_height * 3 * 2
+                pixel_bytes = pixels_raw.tobytes()
+                actual_bytes = len(pixel_bytes)
+
+                if actual_bytes != expected_bytes:
+                    return (False, f"CRITICAL ERROR: Mismatch in pixel data byte length for frame {start_frame + i}! Expected: {expected_bytes}, Actual: {actual_bytes}", None)
+
+                return (True, None, pixel_bytes)
+            except Exception as e:
+                return (False, f"Exception processing frame {start_frame + i}: {e}", None)
+
+        max_workers = min(32, (os.cpu_count() or 4) + 4)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # executor.map preserves the order of the output stream, mapping inputs to outputs directly
+            for success, error_msg, pixel_bytes in executor.map(process_frame, enumerate(exr_files)):
+                if not success:
+                    print(error_msg)
+                    ffproc.stdin.close()
+                    ffproc.kill()
+                    return False
+
+                ffproc.stdin.write(pixel_bytes)
 
         print("Color conversion and piping complete. Waiting for FFmpeg to finish...")
         ffproc.stdin.close()
