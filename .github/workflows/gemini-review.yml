@@ -41,7 +41,22 @@ jobs:
       - name: 'Checkout repository'
         uses: 'actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8' # ratchet:actions/checkout@v6
 
+      - name: 'Check Gemini CLI Auth Configuration'
+        id: 'check_auth'
+        env:
+          GEMINI_API_KEY: '${{ secrets.GEMINI_API_KEY }}'
+          GOOGLE_API_KEY: '${{ secrets.GOOGLE_API_KEY }}'
+          GCP_WIF_PROVIDER: '${{ vars.GCP_WIF_PROVIDER }}'
+        run: |
+          if [[ -n "$GEMINI_API_KEY" || -n "$GOOGLE_API_KEY" || -n "$GCP_WIF_PROVIDER" ]]; then
+            echo "has_auth=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_auth=false" >> "$GITHUB_OUTPUT"
+            echo "No auth configuration found. Skipping Gemini CLI step."
+          fi
+
       - name: 'Run Gemini pull request review'
+        if: steps.check_auth.outputs.has_auth == 'true'
         uses: 'google-github-actions/run-gemini-cli@v0' # ratchet:exclude
         id: 'gemini_pr_review'
         env:
