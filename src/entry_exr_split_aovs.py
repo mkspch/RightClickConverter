@@ -3,7 +3,6 @@ import os
 import win32com.client # Required for pywin32 shell interaction
 import hashlib
 import tempfile
-import time # For time.sleep
 
 # Ensure the converter module can be found
 sys.path.append(os.path.dirname(__file__))
@@ -72,7 +71,6 @@ def main():
         fd = os.open(lock_file_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
         os.close(fd)
         lock_acquired = True
-        time.sleep(0.5) # Give a small buffer time
     except FileExistsError:
         print("Another instance of EXR Split AOVs is already processing this selection. Exiting redundant invocation.")
         return 

@@ -3,7 +3,6 @@ import os
 import win32com.client # Required for pywin32 shell interaction
 import hashlib
 import tempfile
-import time # For time.sleep
 
 # Ensure the converter module can be found
 sys.path.append(os.path.dirname(__file__))
@@ -78,9 +77,6 @@ def main():
         fd = os.open(lock_file_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
         os.close(fd) # Close the file descriptor immediately
         lock_acquired = True
-
-        # Give a small buffer time for other instances to detect the lock
-        time.sleep(0.5) # Wait for half a second
 
     except FileExistsError:
         print("Another instance of Video Contact Sheet is already processing this selection. Exiting redundant invocation.")
