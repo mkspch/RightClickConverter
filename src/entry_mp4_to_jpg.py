@@ -1,6 +1,7 @@
 import sys
 import os
 import argparse # Import argparse for command-line arguments
+import traceback
 
 # This allows the script to find the 'converter' module
 # when called from an external process.
@@ -39,7 +40,6 @@ def main():
             print("\nConversion failed. Please check the errors above.")
     except Exception as e:
         print(f"\nAn unhandled error occurred: {e}")
-        import traceback
         traceback.print_exc()
     finally:
         print("Press Enter to exit.")

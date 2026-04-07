@@ -1,6 +1,7 @@
 import sys
 import os
 import glob
+import traceback
 
 # This allows the script to find the 'converter' module.
 sys.path.append(os.path.dirname(__file__))
@@ -75,7 +76,6 @@ def main():
             print("\nImage Upscale failed. Please check the errors above.")
     except Exception as e:
         print(f"\nAn unhandled error occurred: {e}")
-        import traceback
         traceback.print_exc()
     finally:
         print("Press Enter to exit.")
