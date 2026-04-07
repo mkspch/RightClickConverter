@@ -1,6 +1,7 @@
 import sys
 import os
 import argparse
+import traceback
 
 sys.path.append(os.path.dirname(__file__))
 
@@ -48,7 +49,6 @@ def main():
             print("\nConversion failed. Please check the errors above.")
     except Exception as e:
         print(f"\nAn unhandled error occurred: {e}")
-        import traceback
         traceback.print_exc()
     finally:
         print("Press Enter to exit.")

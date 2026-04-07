@@ -6,6 +6,7 @@ import numpy as np
 import utils
 from PIL import Image
 import math # Added for math.ceil
+import traceback
 
 try:
     import PyOpenColorIO as OCIO
@@ -274,7 +275,6 @@ def convert_exr_to_srgb_mp4(first_file_path, framerate=25):
 
     except Exception as e:
         print(f"An error occurred during the conversion process: {e}")
-        import traceback
         traceback.print_exc()
         return False
 
@@ -366,7 +366,6 @@ def convert_exr_to_srgb_jpg_sequence(first_file_path, quality=90):
 
     except Exception as e:
         print(f"An error occurred during the EXR to JPG conversion process: {e}")
-        import traceback
         traceback.print_exc()
         return False
 def convert_img_half_size(image_path):
@@ -716,7 +715,6 @@ def create_video_contact_sheet(video_paths, output_filename="video_contact_sheet
         return False
     except Exception as e:
         print(f"An error occurred during the video contact sheet creation: {e}")
-        import traceback
         traceback.print_exc()
         return False
     finally:
@@ -780,7 +778,6 @@ def convert_vid_resize(video_path, new_width):
         return False
     except Exception as e:
         print(f"An error occurred during video resizing: {e}")
-        import traceback
         traceback.print_exc()
         return False
 
@@ -1042,7 +1039,6 @@ def split_exr_aovs(exr_path):
 
     except Exception as e:
         print(f"An error occurred while splitting EXR AOVs for {os.path.basename(exr_path)}: {e}")
-        import traceback
         traceback.print_exc()
         return False
 
@@ -1114,7 +1110,6 @@ def upscale_image_realesrgan(image_paths, model_name="realesrgan-x4plus", scale=
             all_successful = False
         except Exception as e:
             print(f"An unexpected error occurred during upscaling '{os.path.basename(image_path)}': {e}")
-            import traceback
             traceback.print_exc()
             all_successful = False
             
