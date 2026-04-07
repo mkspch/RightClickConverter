@@ -34,20 +34,13 @@ class TestConverter(unittest.TestCase):
         self.assertFalse(result)
 
     def test_create_contact_sheet_zero_padding(self):
-        # By passing just the filename here, create_contact_sheet joins it with os.path.dirname(image_paths[0])
-        # which is self.temp_dir.
-        # Wait, the code in converter.py:
-        # output_path = os.path.join(os.path.dirname(image_paths[0]), output_filename)
-        # So it does put it in the same directory as the first input file.
-        # This means passing "contact_sheet_zero.jpg" will save it to self.temp_dir!
-        # Let's verify by just testing it.
-        result = converter.create_contact_sheet(self.image_paths, output_filename="contact_sheet_zero.jpg", padding=0)
+        result = converter.create_contact_sheet(self.image_paths, output_filename=os.path.join(self.temp_dir, "contact_sheet_zero.jpg"), padding=0)
         self.assertTrue(result)
         out_path = os.path.join(self.temp_dir, "contact_sheet_zero.jpg")
         self.assertTrue(os.path.exists(out_path))
 
     def test_create_contact_sheet_large_padding(self):
-        result = converter.create_contact_sheet(self.image_paths, output_filename="contact_sheet_large.jpg", padding=1000)
+        result = converter.create_contact_sheet(self.image_paths, output_filename=os.path.join(self.temp_dir, "contact_sheet_large.jpg"), padding=1000)
         self.assertTrue(result)
         out_path = os.path.join(self.temp_dir, "contact_sheet_large.jpg")
         self.assertTrue(os.path.exists(out_path))
