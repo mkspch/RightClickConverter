@@ -6,6 +6,7 @@ import numpy as np
 import utils
 from PIL import Image
 import math # Added for math.ceil
+import asyncio
 
 try:
     import PyOpenColorIO as OCIO
@@ -556,40 +557,81 @@ def create_video_contact_sheet(video_paths, output_filename="video_contact_sheet
         shortest_duration = float('inf')
         max_height_across_videos = 0 # Initialize max height
 
-        for i, video_path in enumerate(video_paths):
-            if not os.path.exists(video_path):
-                print(f"Warning: Video not found and skipped: {video_path}")
+
+        async def probe_video(index, video_path, semaphore):
+            async with semaphore:
+                if not os.path.exists(video_path):
+                    print(f"Warning: Video not found and skipped: {video_path}")
+                    return None
+
+                probe_cmd_list = [
+                    FFPROBE_EXE, '-v', 'error', '-select_streams', 'v:0',
+                    '-show_entries', 'stream=width,height,duration', '-of', 'default=noprint_wrappers=1', video_path
+                ]
+                print(f"DEBUG: FFPROBE_EXE command: {' '.join(probe_cmd_list)}")
+
+                process = await asyncio.create_subprocess_exec(
+                    *probe_cmd_list,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT
+                )
+                stdout, _ = await process.communicate()
+
+                if process.returncode != 0:
+                    print(f"WARNING: FFPROBE_EXE failed for {os.path.basename(video_path)} with code {process.returncode}: '{stdout.decode().strip()}'")
+                    return None
+
+                probe_output = stdout.decode().strip()
+
+                print(f"DEBUG: FFPROBE_EXE output for {os.path.basename(video_path)}: '{probe_output}'")
+
+                if not probe_output:
+                    print(f"WARNING: FFPROBE_EXE returned empty output for {os.path.basename(video_path)}. Skipping video.")
+                    return None
+
+                lines = probe_output.split('\n')
+
+                width = 0
+                height = 0
+                duration = 0.0
+
+                for line in lines:
+                    if line.startswith("width="):
+                        width = int(line.split('=')[1])
+                    elif line.startswith("height="):
+                        height = int(line.split('=')[1])
+                    elif line.startswith("duration="):
+                        duration = float(line.split('=')[1])
+
+                if width == 0 or height == 0 or duration == 0.0:
+                    print(f"WARNING: Could not parse width, height, or duration from ffprobe output for {os.path.basename(video_path)}. Skipping video.")
+                    return None
+
+                return {
+                    "index": index,
+                    "path": video_path,
+                    "width": width,
+                    "height": height,
+                    "duration": duration
+                }
+
+        async def gather_video_infos():
+            semaphore = asyncio.Semaphore(32)
+            tasks = [probe_video(i, vp, semaphore) for i, vp in enumerate(video_paths)]
+            return await asyncio.gather(*tasks)
+
+        # Run async gathering
+        video_infos = asyncio.run(gather_video_infos())
+
+        # Process gathered infos sequentially to preserve order
+        for info in video_infos:
+            if info is None:
                 continue
 
-            probe_cmd_list = [
-                FFPROBE_EXE, '-v', 'error', '-select_streams', 'v:0',
-                '-show_entries', 'stream=width,height,duration', '-of', 'default=noprint_wrappers=1', video_path
-            ]
-            print(f"DEBUG: FFPROBE_EXE command: {' '.join(probe_cmd_list)}")
-            probe_output = subprocess.check_output(probe_cmd_list, stderr=subprocess.STDOUT, text=True)
-            print(f"DEBUG: FFPROBE_EXE output for {os.path.basename(video_path)}: '{probe_output.strip()}'")
-
-            if not probe_output.strip():
-                print(f"WARNING: FFPROBE_EXE returned empty output for {os.path.basename(video_path)}. Skipping video.")
-                continue
-
-            lines = probe_output.strip().split('\n')
-            
-            width = 0
-            height = 0
-            duration = 0.0
-
-            for line in lines:
-                if line.startswith("width="):
-                    width = int(line.split('=')[1])
-                elif line.startswith("height="):
-                    height = int(line.split('=')[1])
-                elif line.startswith("duration="):
-                    duration = float(line.split('=')[1])
-            
-            if width == 0 or height == 0 or duration == 0.0:
-                print(f"WARNING: Could not parse width, height, or duration from ffprobe output for {os.path.basename(video_path)}. Skipping video.")
-                continue
+            video_path = info["path"]
+            duration = info["duration"]
+            width = info["width"]
+            height = info["height"]
             
             shortest_duration = min(shortest_duration, duration)
             max_height_across_videos = max(max_height_across_videos, height) # Update max height
@@ -603,7 +645,7 @@ def create_video_contact_sheet(video_paths, output_filename="video_contact_sheet
 
             extracted_snippets.append({
                 "path": video_path,
-                "index": i,
+                "index": info["index"],
                 "original_width": width,
                 "original_height": height,
                 "duration": duration,
