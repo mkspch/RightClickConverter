@@ -1,6 +1,5 @@
 import sys
 import os
-import win32com.client # Required for pywin32 shell interaction
 import hashlib
 import tempfile
 import time # For time.sleep
@@ -8,29 +7,7 @@ import time # For time.sleep
 # Ensure the converter module can be found
 sys.path.append(os.path.dirname(__file__))
 import converter
-
-def get_selected_files_from_explorer():
-    """
-    Retrieves the full paths of files selected in the active Windows Explorer window.
-    Requires pywin32.
-    """
-    selected_files = []
-    try:
-        shell_app = win32com.client.Dispatch("Shell.Application")
-        for window in shell_app.Windows():
-            if os.path.basename(window.FullName).lower() == "explorer.exe":
-                try:
-                    selection = window.document.SelectedItems()
-                    if selection.Count > 0:
-                        for item in selection:
-                            selected_files.append(item.Path)
-                        return selected_files
-                except Exception as e:
-                    pass
-    except Exception as e:
-        print(f"ERROR: Could not access Windows Shell Application: {e}")
-        print("Please ensure pywin32 is correctly installed and you are running this from Explorer.")
-    return selected_files
+import utils
 
 def main():
     """
@@ -38,7 +15,7 @@ def main():
     Retrieves selected files directly from Windows Explorer using pywin32.
     Prompts user for new width.
     """
-    video_paths = get_selected_files_from_explorer()
+    video_paths = utils.get_selected_files_from_explorer()
 
     # Define accepted video file extensions
     ACCEPTED_VIDEO_EXTENSIONS = ('.mp4', '.mov', '.avi', '.mkv', '.webm') # Add more as needed
