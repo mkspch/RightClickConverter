@@ -1,6 +1,5 @@
 import sys
 import os
-import win32com.client # Required for pywin32 shell interaction
 import hashlib
 import tempfile
 import time # For time.sleep
@@ -8,40 +7,14 @@ import time # For time.sleep
 # Ensure the converter module can be found
 sys.path.append(os.path.dirname(__file__))
 import converter
-
-def get_selected_files_from_explorer():
-    """
-    Retrieves the full paths of files selected in the active Windows Explorer window.
-    Requires pywin32.
-    """
-    selected_files = []
-    try:
-        shell_app = win32com.client.Dispatch("Shell.Application")
-        # Get all open Explorer windows
-        # Iterate to find the active Explorer window that has a selection
-        for window in shell_app.Windows():
-            # Check if the window is an Explorer window showing files
-            if os.path.basename(window.FullName).lower() == "explorer.exe":
-                try:
-                    selection = window.document.SelectedItems()
-                    if selection.Count > 0: # Only consider windows with active selections
-                        for item in selection:
-                            selected_files.append(item.Path)
-                        return selected_files # Return as soon as a selection from an Explorer window is found
-                except Exception as e:
-                    # print(f"DEBUG: Error accessing selection in window: {e}")
-                    pass
-    except Exception as e:
-        print(f"ERROR: Could not access Windows Shell Application: {e}")
-        print("Please ensure pywin32 is correctly installed and you are running this from Explorer.")
-    return selected_files
+import utils
 
 def main():
     """
     Entry point for creating an image contact sheet.
     Retrieves selected files directly from Windows Explorer using pywin32.
     """
-    image_paths = get_selected_files_from_explorer()
+    image_paths = utils.get_selected_files_from_explorer()
 
     # Define accepted image file extensions
     ACCEPTED_IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.exr') # Add more as needed

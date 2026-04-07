@@ -85,7 +85,22 @@ jobs:
           ISSUE_COUNT="$(echo "${ISSUES}" | jq 'length')"
           echo "✅ Found ${ISSUE_COUNT} issue(s) to triage! 🎯"
 
+      - name: 'Check Gemini CLI Auth Configuration'
+        id: 'check_auth'
+        env:
+          GEMINI_API_KEY: '${{ secrets.GEMINI_API_KEY }}'
+          GOOGLE_API_KEY: '${{ secrets.GOOGLE_API_KEY }}'
+          GCP_WIF_PROVIDER: '${{ vars.GCP_WIF_PROVIDER }}'
+        run: |
+          if [[ -n "$GEMINI_API_KEY" || -n "$GOOGLE_API_KEY" || -n "$GCP_WIF_PROVIDER" ]]; then
+            echo "has_auth=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_auth=false" >> "$GITHUB_OUTPUT"
+            echo "No auth configuration found. Skipping Gemini CLI step."
+          fi
+
       - name: 'Run Gemini Issue Analysis'
+        if: steps.check_auth.outputs.has_auth == 'true'
         id: 'gemini_issue_analysis'
         if: |-
           ${{ steps.find_issues.outputs.issues_to_triage != '[]' }}
