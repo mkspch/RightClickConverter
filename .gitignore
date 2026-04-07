@@ -2,3 +2,5 @@
 gha-creds-*.json
 test/
 install_no_downloads.bat
+__pycache__/
+*.pyc
