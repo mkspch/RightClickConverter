@@ -170,19 +170,51 @@ def convert_sequence_to_mp4(first_file_path, framerate=25, output_path=None):
         print(f"Error Output: {e.stderr}")
         return False
 
+def _get_sequence_info(first_file_path):
+    exr_files, start_frame, sequence_pattern = utils.find_sequence_files(first_file_path)
+    if not exr_files:
+        return None, None, None
+    output_dir = os.path.dirname(first_file_path)
+    base_name = os.path.basename(sequence_pattern).split('%')[0].rstrip('._-')
+    final_output_path = os.path.join(output_dir, f"{base_name}_sRGB.mp4")
+    return exr_files, start_frame, final_output_path
+
+def _start_ffmpeg_process(output_width, output_height, framerate, final_output_path):
+    ffmpeg_pixel_format = "rgb48le"
+    ffmpeg_cmd = [
+        FFMPEG_EXE,
+        "-hide_banner", "-loglevel", "info", "-y",
+        "-f", "rawvideo",
+        "-pixel_format", ffmpeg_pixel_format,
+        "-video_size", f"{output_width}x{output_height}",
+        "-framerate", str(framerate),
+        "-i", "pipe:0",
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-preset", "medium",
+        "-crf", "23",
+        final_output_path
+    ]
+    print(f"FFMPEG Command: {' '.join(ffmpeg_cmd)}")
+    try:
+        return subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE, executable=FFMPEG_EXE)
+    except FileNotFoundError:
+        print(f"CRITICAL ERROR: FFmpeg executable not found at '{FFMPEG_EXE}'.")
+        print("Please ensure FFmpeg is correctly installed.")
+        return None
+    except Exception as e:
+        print(f"CRITICAL ERROR: Failed to start FFmpeg subprocess: {e}")
+        return None
+
 def convert_exr_to_srgb_mp4(first_file_path, framerate=25):
     if not OCIO or not OIIO:
         return False
 
-    exr_files, start_frame, sequence_pattern = utils.find_sequence_files(first_file_path)
+    exr_files, start_frame, final_output_path = _get_sequence_info(first_file_path)
 
     if not exr_files:
         print("Error: Could not find EXR sequence.")
         return False
-        
-    output_dir = os.path.dirname(first_file_path)
-    base_name = os.path.basename(sequence_pattern).split('%')[0].rstrip('._-')
-    final_output_path = os.path.join(output_dir, f"{base_name}_sRGB.mp4")
 
     ocio_config_path = os.path.join(os.path.dirname(__file__), 'config', 'aces_1.2', 'config.ocio')
     if not os.path.exists(ocio_config_path):
@@ -200,33 +232,8 @@ def convert_exr_to_srgb_mp4(first_file_path, framerate=25):
     output_width = first_img_buf.spec().width
     output_height = first_img_buf.spec().height
 
-    ffmpeg_pixel_format = "rgb48le"
-
-    ffmpeg_cmd = [
-        FFMPEG_EXE,
-        "-hide_banner", "-loglevel", "info", "-y",
-        "-f", "rawvideo",
-        "-pixel_format", ffmpeg_pixel_format,
-        "-video_size", f"{output_width}x{output_height}",
-        "-framerate", str(framerate),
-        "-i", "pipe:0",
-        "-c:v", "libx264",
-        "-pix_fmt", "yuv420p",
-        "-preset", "medium",
-        "-crf", "23",
-        final_output_path
-    ]
-
-    print(f"FFMPEG Command: {' '.join(ffmpeg_cmd)}")
-
-    try:
-        ffproc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE, executable=FFMPEG_EXE)
-    except FileNotFoundError:
-        print(f"CRITICAL ERROR: FFmpeg executable not found at '{FFMPEG_EXE}'.")
-        print("Please ensure FFmpeg is correctly installed.")
-        return False
-    except Exception as e:
-        print(f"CRITICAL ERROR: Failed to start FFmpeg subprocess: {e}")
+    ffproc = _start_ffmpeg_process(output_width, output_height, framerate, final_output_path)
+    if not ffproc:
         return False
 
     print("Starting color conversion and piping to FFmpeg...")
