@@ -773,7 +773,7 @@ def convert_vid_resize(video_path, new_width):
 
     except subprocess.CalledProcessError as e:
         print("Error during FFmpeg execution:")
-        print(f"Command: {ffmpeg_cmd}")
+        print(f"Command: {' '.join(ffmpeg_cmd_list)}")
         print(f"Return Code: {e.returncode}")
         print(f"Output: {e.stdout}")
         print(f"Error Output: {e.stderr}")
