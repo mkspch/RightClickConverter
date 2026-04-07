@@ -3,7 +3,6 @@ import os
 import win32com.client # Required for pywin32 shell interaction
 import hashlib
 import tempfile
-import time # For time.sleep
 
 # Ensure the converter module can be found
 sys.path.append(os.path.dirname(__file__))
@@ -79,9 +78,6 @@ def main():
         os.close(fd) # Close the file descriptor immediately
         lock_acquired = True
         # Removed debug print for acquired lock
-
-        # Give a small buffer time for other instances to detect the lock
-        time.sleep(0.5) # Wait for half a second
 
     except FileExistsError:
         # Removed debug print for redundant invocation
