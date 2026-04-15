@@ -68,38 +68,38 @@ HTML_COMPARE_TEMPLATE = """<!DOCTYPE html>
         }}
 
         .handle {{
-            width: 256px;
-            height: 256px;
+            width: var(--handle-size, 256px);
+            height: var(--handle-size, 256px);
             background: rgba(255, 255, 255, 0.2);
-            border: 8px solid #fff;
+            border: calc(var(--handle-size, 256px) * 0.03) solid #fff;
             border-radius: 50%;
-            box-shadow: 0 0 40px rgba(0,0,0,0.9);
+            box-shadow: 0 0 calc(var(--handle-size, 256px) * 0.15) rgba(0,0,0,0.9);
             position: absolute;
             transform: translate(-50%, -50%);
         }}
 
         .rotator {{
-            width: 128px;
-            height: 128px;
+            width: var(--rotator-size, 128px);
+            height: var(--rotator-size, 128px);
             background: #ffcc00;
-            border: 8px solid #fff;
+            border: calc(var(--rotator-size, 128px) * 0.06) solid #fff;
             border-radius: 50%;
             position: absolute;
-            transform: translate(-50%, -400px);
+            transform: translate(-50%, calc(var(--rotator-dist, 400px) * -1));
             cursor: crosshair;
-            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+            box-shadow: 0 0 calc(var(--rotator-size, 128px) * 0.2) rgba(0,0,0,0.9);
         }}
 
         .line-preview {{
             position: absolute;
-            width: 8px;
+            width: var(--line-width, 8px);
             height: 80000px;
             background: #fff;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             pointer-events: none;
-            box-shadow: 0 0 15px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1);
+            box-shadow: 0 0 calc(var(--line-width, 8px) * 2) rgba(0,0,0,1), 0 0 calc(var(--line-width, 8px) * 0.25) rgba(0,0,0,1);
         }}
 
         .ui-overlay {{
@@ -265,6 +265,20 @@ HTML_COMPARE_TEMPLATE = """<!DOCTYPE html>
         canvas.style.width = w + 'px';
         canvas.style.height = h + 'px';
         
+        // Dynamic Gizmo Scaling
+        const baseDim = Math.max(w, h);
+        const gScale = baseDim / 12288;
+        
+        const handleSize = Math.max(32, 256 * gScale);
+        const rotatorSize = Math.max(16, 128 * gScale);
+        const rotatorDist = Math.max(60, 400 * gScale);
+        const lineWidth = Math.max(1, 8 * gScale);
+        
+        document.documentElement.style.setProperty('--handle-size', handleSize + 'px');
+        document.documentElement.style.setProperty('--rotator-size', rotatorSize + 'px');
+        document.documentElement.style.setProperty('--rotator-dist', rotatorDist + 'px');
+        document.documentElement.style.setProperty('--line-width', lineWidth + 'px');
+
         gizmoX = w / 2;
         gizmoY = h / 2;
         gizmoAngle = 0; // Vertical split
@@ -279,6 +293,7 @@ HTML_COMPARE_TEMPLATE = """<!DOCTYPE html>
 
     layerBottom.onload = init;
     window.onload = init; // Backup for base64 which might already be loaded
+...
 
     // Interaction
     viewport.onpointerdown = (e) => {{
