@@ -15,12 +15,14 @@ SUBMENU_KEY_FULL_PATH = r"Software\Classes\%s" % SUBMENU_KEY_NAME
 # List of submenu items for regular right-click (including Contact Sheet)
 SUBMENU_ITEMS = [
     ("EXR > MP4 (ACEScg-sRGB)", "entry_exr_to_mp4.py"),
+    ("EXR > TIF (32bit ACES-sRGB)", "entry_exr_to_tif.py"),
     ("EXR > JPG", "entry_exr_to_jpg.py"),
     ("EXR > Split AOVs", "entry_exr_split_aovs.py"),
     ("IMG > MP4", "entry_seq_to_mp4.py"),
     ("IMG > Resize", "entry_img_resize.py"),
     ("IMG > Half Size", "entry_img_half_size.py"),
     ("IMG > Contact Sheet", "entry_img_contactsheet.py"),
+    ("IMG > Compare", "entry_img_compare.py"),
     ("IMG > Upscale", "entry_img_upscale.py"),
     ("VID > PNG", "entry_mp4_to_png.py"),
     ("VID > JPG", "entry_mp4_to_jpg.py"),
@@ -82,6 +84,8 @@ def add_context_menu_entries():
                 if display_text == "VID > JPG":
                     command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}" "%V" --quality 90'
                 elif display_text == "IMG > Contact Sheet": # For contact sheet, pywin32 fetches files
+                    command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}"' # No args needed, script gets selection
+                elif display_text == "IMG > Compare": # For comparison, pywin32 fetches files
                     command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}"' # No args needed, script gets selection
                 elif display_text == "VID > Contact Sheet": # For video contact sheet, pywin32 fetches files
                     command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}"' # No args needed, script gets selection
