@@ -1,5 +1,64 @@
 import os
 import re
+import time
+import win32gui
+import win32com.client
+
+def get_selected_files_from_explorer(clicked_path=None):
+    """
+    Retrieves the full paths of files selected in the active Windows Explorer window.
+    If clicked_path is provided, it helps identify the correct window.
+    """
+    # Small delay to ensure Explorer selection state is updated after right-click
+    time.sleep(0.1)
+    
+    selected_files = []
+    try:
+        shell_app = win32com.client.Dispatch("Shell.Application")
+        foreground_hwnd = win32gui.GetForegroundWindow()
+        
+        # 1. First pass: try to find the window that matches the foreground HWND
+        # and contains the clicked_path (if provided).
+        for window in shell_app.Windows():
+            try:
+                # Basic check for Explorer window
+                if os.path.basename(window.FullName).lower() != "explorer.exe":
+                    continue
+                
+                selection = window.document.SelectedItems()
+                paths = [item.Path for item in selection]
+                
+                # If we have a clicked_path, and it's in this window's selection, 
+                # this is definitely our window.
+                if clicked_path and clicked_path in paths:
+                    return paths
+                
+                # If no clicked_path, check if this is the foreground window
+                if not clicked_path and window.HWND == foreground_hwnd:
+                    if paths:
+                        return paths
+            except Exception:
+                continue
+
+        # 2. Second pass: fallback to any window that has a selection
+        for window in shell_app.Windows():
+            try:
+                if os.path.basename(window.FullName).lower() != "explorer.exe":
+                    continue
+                selection = window.document.SelectedItems()
+                if selection.Count > 0:
+                    return [item.Path for item in selection]
+            except Exception:
+                continue
+                
+    except Exception as e:
+        print(f"ERROR: Could not access Windows Shell Application: {e}")
+        
+    # 3. Third pass: if all else fails and we have a clicked_path, return just that
+    if clicked_path:
+        return [clicked_path]
+        
+    return selected_files
 
 def find_sequence_files(file_path):
     """

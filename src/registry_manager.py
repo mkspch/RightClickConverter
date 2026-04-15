@@ -80,19 +80,9 @@ def add_context_menu_entries():
                     full_icon_path = get_icon_path(install_root, icon_file)
                     winreg.SetValueEx(key, "Icon", 0, winreg.REG_SZ, f"{full_icon_path},0")
                 
-                # Wrap all commands in cmd.exe /K to keep the window open
+                # Wrap all commands in cmd.exe /c
                 if display_text == "VID > JPG":
                     command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}" "%V" --quality 90'
-                elif display_text == "IMG > Contact Sheet": # For contact sheet, pywin32 fetches files
-                    command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}"' # No args needed, script gets selection
-                elif display_text == "IMG > Compare": # For comparison, pywin32 fetches files
-                    command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}"' # No args needed, script gets selection
-                elif display_text == "VID > Contact Sheet": # For video contact sheet, pywin32 fetches files
-                    command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}"' # No args needed, script gets selection
-                elif display_text == "VID > Resize": # For video resize, pywin32 fetches files
-                    command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}"' # No args needed, script gets selection
-                elif display_text == "EXR > Split AOVs": # For EXR Split AOVs, pywin32 fetches files
-                    command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}"' # No args needed, script gets selection
                 else:
                     command_args = f'"{python_exe}" "{os.path.join(scripts_path, script_name)}" "%V"'
                 
