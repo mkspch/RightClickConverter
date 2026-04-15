@@ -293,7 +293,6 @@ HTML_COMPARE_TEMPLATE = """<!DOCTYPE html>
 
     layerBottom.onload = init;
     window.onload = init; // Backup for base64 which might already be loaded
-...
 
     // Interaction
     viewport.onpointerdown = (e) => {{
