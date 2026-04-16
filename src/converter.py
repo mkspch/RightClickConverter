@@ -15,7 +15,7 @@ HTML_COMPARE_TEMPLATE = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Comparison Tool (High Res)</title>
+    <title>Image Comparison Tool Pro</title>
     <style>
         body, html {{
             margin: 0;
@@ -25,6 +25,7 @@ HTML_COMPARE_TEMPLATE = """<!DOCTYPE html>
             overflow: hidden;
             background-color: #111;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: white;
         }}
 
         .viewport {{
@@ -34,6 +35,11 @@ HTML_COMPARE_TEMPLATE = """<!DOCTYPE html>
             cursor: grab;
             background-color: #111;
             position: relative;
+            touch-action: none;
+        }}
+
+        .viewport.drawing-mode {{
+            cursor: none; /* Custom cursor used */
         }}
 
         .canvas-container {{
@@ -43,6 +49,14 @@ HTML_COMPARE_TEMPLATE = """<!DOCTYPE html>
             left: 0;
         }}
 
+        .image-layer-group {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }}
+
         .image-layer {{
             position: absolute;
             top: 0;
@@ -50,13 +64,19 @@ HTML_COMPARE_TEMPLATE = """<!DOCTYPE html>
             display: block;
         }}
 
-        #layer-bottom {{
-            z-index: 1;
+        .anno-canvas {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            image-rendering: pixelated;
+            z-index: 50;
         }}
 
-        #layer-top {{
-            z-index: 2;
-        }}
+        #group-bottom {{ z-index: 1; }}
+        #group-top {{ z-index: 2; }}
 
         /* Gizmo Styles */
         #gizmo {{
@@ -99,9 +119,10 @@ HTML_COMPARE_TEMPLATE = """<!DOCTYPE html>
             left: 50%;
             transform: translate(-50%, -50%);
             pointer-events: none;
-            box-shadow: 0 0 calc(var(--line-width, 8px) * 2) rgba(0,0,0,1), 0 0 calc(var(--line-width, 8px) * 0.25) rgba(0,0,0,1);
+            box-shadow: 0 0 calc(var(--line-width, 8px) * 2) rgba(0,0,0,1);
         }}
 
+        /* UI Overlays */
         .ui-overlay {{
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -113,43 +134,202 @@ HTML_COMPARE_TEMPLATE = """<!DOCTYPE html>
             position: absolute;
             bottom: 20px;
             padding: 10px 20px;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             color: white;
             border: 1px solid #444;
             border-radius: 5px;
             z-index: 20;
-            font-size: 12px;
-            max-width: 40%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            font-size: 13px;
+            max-width: 35%;
+            pointer-events: auto;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
         }}
 
+        .label:hover {{ background: #222; }}
         #label-a {{ left: 20px; }}
         #label-b {{ right: 20px; }}
 
-        .instructions {{
+        .save-menu {{
+            display: none;
             position: absolute;
+            bottom: 100%;
+            left: 0;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            overflow: hidden;
+            width: 180px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }}
+
+        .save-menu button {{
+            width: 100%;
+            padding: 10px;
+            background: none;
+            border: none;
+            color: white;
+            text-align: left;
+            cursor: pointer;
+            font-size: 12px;
+        }}
+
+        .save-menu button:hover {{ background: #333; }}
+        .save-menu button b {{ color: #28a745; margin-right: 5px; }}
+
+        .mode-switcher {{
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            background: rgba(0,0,0,0.85);
+            border: 1px solid #444;
+            border-radius: 30px;
+            padding: 5px;
+            pointer-events: auto;
+        }}
+
+        .mode-btn {{
+            padding: 8px 20px;
+            border: none;
+            background: none;
+            color: #888;
+            cursor: pointer;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.2s;
+        }}
+
+        .mode-btn.active {{
+            background: white;
+            color: black;
+        }}
+
+        /* Toolbar */
+        .toolbar {{
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.85);
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            pointer-events: auto;
+            width: 120px;
+            align-items: center;
+        }}
+
+        .tool-group {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            width: 100%;
+        }}
+
+        .tool-btn {{
+            width: 44px;
+            height: 44px;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            transition: background 0.2s;
+        }}
+
+        .tool-btn.active {{
+            background: #007bff;
+            border-color: #00aaff;
+        }}
+
+        .tool-btn.visible {{
+            color: #28a745;
+            border-color: #28a745;
+        }}
+        
+        .tool-btn.danger:hover {{
+            background: #dc3545;
+            border-color: #ff6b6b;
+        }}
+
+        .color-picker {{
+            width: 100%;
+            height: 40px;
+            padding: 0;
+            border: 2px solid #444;
+            background: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }}
+
+        .brush-controls {{
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            align-items: center;
+        }}
+
+        .brush-slider {{
+            width: 100%;
+            cursor: pointer;
+        }}
+
+        /* Custom Cursor */
+        #custom-cursor {{
+            position: fixed;
+            pointer-events: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }}
+
+        .status-msg {{
+            position: fixed;
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0,0,0,0.7);
-            color: #eee;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 14px;
-            z-index: 20;
-            text-align: center;
+            background: #28a745;
+            padding: 10px 30px;
+            border-radius: 30px;
+            font-weight: bold;
+            display: none;
+            z-index: 1000;
         }}
     </style>
 </head>
 <body>
 
+<div id="status" class="status-msg">Processing...</div>
+<div id="custom-cursor"></div>
+
 <div class="viewport" id="viewport">
     <div class="canvas-container" id="canvas">
-        <img id="layer-bottom" class="image-layer" src="data:image/jpeg;base64,{img_b_base64}">
-        <img id="layer-top" class="image-layer" src="data:image/jpeg;base64,{img_a_base64}">
+        <div id="group-bottom" class="image-layer-group">
+            <img id="layer-bottom" class="image-layer" src="data:image/jpeg;base64,{img_b_base64}">
+        </div>
+        <div id="group-top" class="image-layer-group">
+            <img id="layer-top" class="image-layer" src="data:image/jpeg;base64,{img_a_base64}">
+        </div>
         
+        <canvas id="anno-main" class="anno-canvas"></canvas>
+
         <div id="gizmo">
             <div class="line-preview" id="line"></div>
             <div class="handle" id="center-handle"></div>
@@ -159,221 +339,309 @@ HTML_COMPARE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <div class="ui-overlay">
-    <div class="label" id="label-a">{name_a}</div>
-    <div class="label" id="label-b">{name_b}</div>
-    <div class="instructions">
-        Drag Viewport to Pan • Mouse Wheel to Zoom<br>
-        Drag Gizmo to Move Split • Drag Yellow Circle to Rotate
+    <!-- Labels -->
+    <div class="label" id="label-a" onclick="toggleSaveMenu('a')">
+        <span id="text-a" class="label-text"></span>
+        <div id="menu-a" class="save-menu">
+            <button onclick="downloadImage('a', false, event)"><b>💾</b> Save Original</button>
+            <button onclick="downloadImage('a', true, event)"><b>🎨</b> Save with Annotations</button>
+        </div>
+    </div>
+
+    <div class="label" id="label-b" onclick="toggleSaveMenu('b')">
+        <span id="text-b" class="label-text"></span>
+        <div id="menu-b" class="save-menu">
+            <button onclick="downloadImage('b', false, event)"><b>💾</b> Save Original</button>
+            <button onclick="downloadImage('b', true, event)"><b>🎨</b> Save with Annotations</button>
+        </div>
+    </div>
+
+    <!-- Mode Switcher -->
+    <div class="mode-switcher">
+        <button id="mode-a" class="mode-btn" onclick="setMode('A')">A</button>
+        <button id="mode-ab" class="mode-btn active" onclick="setMode('AB')">A / B</button>
+        <button id="mode-b" class="mode-btn" onclick="setMode('B')">B</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="tool-group">
+            <button id="pencil-btn" class="tool-btn" onclick="setTool('pencil')" title="Pencil Tool">✏️</button>
+            <button id="eraser-btn" class="tool-btn" onclick="setTool('eraser')" title="Eraser Tool">🧼</button>
+            <button id="visibility-btn" class="tool-btn visible" onclick="toggleAnnoVis()" title="Toggle Visibility">👁️</button>
+            <button id="clear-btn" class="tool-btn danger" onclick="clearCanvas()" title="Clear All Drawings">🗑️</button>
+        </div>
+        <input type="color" id="color-picker" class="color-picker" value="#ff0000" onchange="updateCursor()">
+        <div class="brush-controls">
+            <span style="font-size: 10px; color: #aaa;">SIZE</span>
+            <input type="range" id="brush-size" class="brush-slider" min="1" max="100" value="10" oninput="updateCursor()">
+        </div>
     </div>
 </div>
 
 <script>
-    const labelA = document.getElementById('label-a');
-    const labelB = document.getElementById('label-b');
     const nameA = "{name_a}";
     const nameB = "{name_b}";
 
-    const canvas = document.getElementById('canvas');
     const viewport = document.getElementById('viewport');
+    const canvas = document.getElementById('canvas');
+    const groupTop = document.getElementById('group-top');
+    const groupBottom = document.getElementById('group-bottom');
     const layerTop = document.getElementById('layer-top');
     const layerBottom = document.getElementById('layer-bottom');
+    const annoMain = document.getElementById('anno-main');
+    const ctx = annoMain.getContext('2d');
+    const customCursor = document.getElementById('custom-cursor');
+
     const gizmo = document.getElementById('gizmo');
     const centerHandle = document.getElementById('center-handle');
     const rotateHandle = document.getElementById('rotate-handle');
     const line = document.getElementById('line');
 
+    const labelAText = document.getElementById('text-a');
+    const labelBText = document.getElementById('text-b');
+
     let scale = 1.0;
     let panX = 0;
     let panY = 0;
-
-    // Gizmo state (in image coordinates)
     let gizmoX = 0;
     let gizmoY = 0;
-    let gizmoAngle = 0; // 0 degrees = vertical split
+    let gizmoAngle = 0;
 
+    let currentMode = 'AB';
+    let currentTool = 'none'; 
+    let isMouseDown = false;
     let isPanning = false;
     let isDraggingGizmo = false;
     let isRotatingGizmo = false;
+    let lastX, lastY;
+    
+    let drawScale = 1.0;
 
-    let startX, startY;
+    function setMode(mode) {{
+        currentMode = mode;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`mode-${{mode.toLowerCase()}}`).classList.add('active');
+        gizmo.style.display = (mode === 'AB') ? 'block' : 'none';
+        groupTop.style.display = (mode === 'B') ? 'none' : 'block';
+        groupBottom.style.display = (mode === 'A') ? 'none' : 'block';
+        updateClip();
+    }}
+
+    function setTool(tool) {{
+        currentTool = (currentTool === tool) ? 'none' : tool;
+        document.getElementById('pencil-btn').classList.toggle('active', currentTool === 'pencil');
+        document.getElementById('eraser-btn').classList.toggle('active', currentTool === 'eraser');
+        viewport.classList.toggle('drawing-mode', currentTool !== 'none');
+        updateCursor();
+    }}
+
+    function updateCursor() {{
+        if (currentTool === 'none') {{
+            customCursor.style.display = 'none';
+            return;
+        }}
+        const size = document.getElementById('brush-size').value * scale;
+        customCursor.style.width = size + 'px';
+        customCursor.style.height = size + 'px';
+        customCursor.style.display = 'block';
+        
+        if (currentTool === 'eraser') {{
+            customCursor.style.borderColor = 'white';
+            customCursor.style.backgroundColor = 'rgba(255,255,255,0.2)';
+        }} else {{
+            const color = document.getElementById('color-picker').value;
+            customCursor.style.borderColor = color;
+            customCursor.style.backgroundColor = 'transparent';
+        }}
+    }}
+
+    function toggleAnnoVis() {{
+        const btn = document.getElementById('visibility-btn');
+        const visible = annoMain.style.display !== 'none';
+        annoMain.style.display = visible ? 'none' : 'block';
+        btn.classList.toggle('visible', !visible);
+    }}
+
+    function clearCanvas() {{
+        if (confirm("Clear all drawings?")) {{
+            ctx.clearRect(0, 0, annoMain.width, annoMain.height);
+        }}
+    }}
 
     function updateTransform() {{
         canvas.style.transform = `translate(${{panX}}px, ${{panY}}px) scale(${{scale}})`;
+        updateCursor();
     }}
 
     function updateClip() {{
         gizmo.style.left = gizmoX + 'px';
         gizmo.style.top = gizmoY + 'px';
-        // 0 degrees is vertical (default line orientation)
         line.style.transform = `translate(-50%, -50%) rotate(${{gizmoAngle}}deg)`;
-
-        const w = layerBottom.naturalWidth;
-        const h = layerBottom.naturalHeight;
-
-        // rad=0 is vertical line (nx=1, ny=0)
-        const rad = gizmoAngle * (Math.PI / 180);
-        const nx = Math.cos(rad);
-        const ny = Math.sin(rad);
-
-        const corners = [{{x:0,y:0}}, {{x:w,y:0}}, {{x:w,y:h}}, {{x:0,y:h}}];
-        const getSide = (px, py) => nx * (px - gizmoX) + ny * (py - gizmoY);
-        
-        let polyPoints = [];
-        for (let i = 0; i < 4; i++) {{
-            const p1 = corners[i];
-            const p2 = corners[(i + 1) % 4];
-            if (getSide(p1.x, p1.y) <= 0) polyPoints.push(`${{p1.x}}px ${{p1.y}}px`);
-            
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            const denom = nx * dx + ny * dy;
-            if (Math.abs(denom) > 0.0001) {{
-                const t = (nx * (gizmoX - p1.x) + ny * (gizmoY - p1.y)) / denom;
-                if (t >= 0 && t <= 1) {{
-                    polyPoints.push(`${{p1.x + t*dx}}px ${{p1.y + t*dy}}px`);
+        const w = layerBottom.naturalWidth, h = layerBottom.naturalHeight;
+        if (currentMode !== 'AB') {{
+            groupTop.style.clipPath = 'none';
+        }} else {{
+            const rad = gizmoAngle * (Math.PI / 180);
+            const nx = Math.cos(rad), ny = Math.sin(rad);
+            const corners = [{{x:0,y:0}}, {{x:w,y:0}}, {{x:w,y:h}}, {{x:0,y:h}}];
+            const getSide = (px, py) => nx * (px - gizmoX) + ny * (py - gizmoY);
+            let polyPoints = [];
+            for (let i = 0; i < 4; i++) {{
+                const p1 = corners[i], p2 = corners[(i + 1) % 4];
+                if (getSide(p1.x, p1.y) <= 0) polyPoints.push(`${{p1.x}}px ${{p1.y}}px`);
+                const dx = p2.x - p1.x, dy = p2.y - p1.y, denom = nx * dx + ny * dy;
+                if (Math.abs(denom) > 0.0001) {{
+                    const t = (nx * (gizmoX - p1.x) + ny * (gizmoY - p1.y)) / denom;
+                    if (t >= 0 && t <= 1) polyPoints.push(`${{p1.x + t*dx}}px ${{p1.y + t*dy}}px`);
                 }}
             }}
+            groupTop.style.clipPath = `polygon(${{polyPoints.join(', ')}})`;
         }}
-        layerTop.style.clipPath = `polygon(${{polyPoints.join(', ')}})`;
-
-        // Update Labels based on orientation and flip state
         const displayAngle = ((gizmoAngle % 360) + 360) % 360;
-        
-        if (displayAngle === 0) {{
-            labelA.textContent = `${{nameA}} (Left)`;
-            labelB.textContent = `${{nameB}} (Right)`;
-        }} else if (displayAngle === 180) {{
-            labelA.textContent = `${{nameA}} (Right)`;
-            labelB.textContent = `${{nameB}} (Left)`;
-        }} else if (displayAngle === 90) {{
-            labelA.textContent = `${{nameA}} (Top)`;
-            labelB.textContent = `${{nameB}} (Bottom)`;
-        }} else if (displayAngle === 270) {{
-            labelA.textContent = `${{nameA}} (Bottom)`;
-            labelB.textContent = `${{nameB}} (Top)`;
-        }}
+        let suffixA = " (Left)", suffixB = " (Right)";
+        if (displayAngle === 180) {{ suffixA = " (Right)"; suffixB = " (Left)"; }}
+        else if (displayAngle === 90) {{ suffixA = " (Top)"; suffixB = " (Bottom)"; }}
+        else if (displayAngle === 270) {{ suffixA = " (Bottom)"; suffixB = " (Top)"; }}
+        labelAText.textContent = nameA + suffixA;
+        labelBText.textContent = nameB + suffixB;
     }}
 
     function init() {{
-        const w = layerBottom.naturalWidth;
-        const h = layerBottom.naturalHeight;
-        if (!w || !h) {{
-            setTimeout(init, 50);
-            return;
-        }}
-
-        canvas.style.width = w + 'px';
-        canvas.style.height = h + 'px';
-        
-        // Dynamic Gizmo Scaling
-        const baseDim = Math.max(w, h);
-        const gScale = baseDim / 12288;
-        
-        const handleSize = Math.max(32, 256 * gScale);
-        const rotatorSize = Math.max(16, 128 * gScale);
-        const rotatorDist = Math.max(60, 400 * gScale);
-        const lineWidth = Math.max(1, 8 * gScale);
-        
-        document.documentElement.style.setProperty('--handle-size', handleSize + 'px');
-        document.documentElement.style.setProperty('--rotator-size', rotatorSize + 'px');
-        document.documentElement.style.setProperty('--rotator-dist', rotatorDist + 'px');
-        document.documentElement.style.setProperty('--line-width', lineWidth + 'px');
-
-        gizmoX = w / 2;
-        gizmoY = h / 2;
-        gizmoAngle = 0; // Vertical split
-        
+        const w = layerBottom.naturalWidth, h = layerBottom.naturalHeight;
+        if (!w) {{ setTimeout(init, 50); return; }}
+        canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+        const maxDrawDim = 2048;
+        drawScale = maxDrawDim / Math.max(w, h);
+        if (drawScale > 1.0) drawScale = 1.0;
+        annoMain.width = w * drawScale; annoMain.height = h * drawScale;
+        const gScale = Math.max(w, h) / 12288;
+        document.documentElement.style.setProperty('--handle-size', Math.max(32, 256 * gScale) + 'px');
+        document.documentElement.style.setProperty('--rotator-size', Math.max(16, 128 * gScale) + 'px');
+        document.documentElement.style.setProperty('--rotator-dist', Math.max(60, 400 * gScale) + 'px');
+        document.documentElement.style.setProperty('--line-width', Math.max(1, 8 * gScale) + 'px');
+        gizmoX = w / 2; gizmoY = h / 2; gizmoAngle = 0;
         scale = Math.min(window.innerWidth / w, window.innerHeight / h) * 0.9;
-        panX = (window.innerWidth - w * scale) / 2;
-        panY = (window.innerHeight - h * scale) / 2;
-        
-        updateTransform();
-        updateClip();
+        panX = (window.innerWidth - w * scale) / 2; panY = (window.innerHeight - h * scale) / 2;
+        updateTransform(); updateClip();
+    }}
+    window.onload = init;
+
+    function toggleSaveMenu(id) {{
+        const menu = document.getElementById(`menu-${{id}}`);
+        const otherMenu = document.getElementById(`menu-${{id === 'a' ? 'b' : 'a'}}`);
+        otherMenu.style.display = 'none';
+        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
     }}
 
-    layerBottom.onload = init;
-    window.onload = init; // Backup for base64 which might already be loaded
-
-    // Interaction
-    viewport.onpointerdown = (e) => {{
-        if (e.target === centerHandle || e.target === rotateHandle) return;
-        isPanning = true;
-        startX = e.clientX - panX;
-        startY = e.clientY - panY;
-        viewport.setPointerCapture(e.pointerId);
-    }};
-
-    centerHandle.onpointerdown = (e) => {{
-        isDraggingGizmo = true;
-        centerHandle.setPointerCapture(e.pointerId);
-        e.stopPropagation();
-    }};
-
-    rotateHandle.onpointerdown = (e) => {{
-        isRotatingGizmo = true;
-        rotateHandle.setPointerCapture(e.pointerId);
-        e.stopPropagation();
-    }};
-
-    window.onpointermove = (e) => {{
-        if (isPanning) {{
-            panX = e.clientX - startX;
-            panY = e.clientY - startY;
-            updateTransform();
-        }} else if (isDraggingGizmo) {{
-            const rect = canvas.getBoundingClientRect();
-            gizmoX = (e.clientX - rect.left) / scale;
-            gizmoY = (e.clientY - rect.top) / scale;
-            updateClip();
-        }} else if (isRotatingGizmo) {{
-            const rect = canvas.getBoundingClientRect();
-            const cx = rect.left + gizmoX * scale;
-            const cy = rect.top + gizmoY * scale;
-            const dx = e.clientX - cx;
-            const dy = e.clientY - cy;
-
-            let rawAngle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
-
-            const snapInterval = 45;
-            const snapThreshold = 4;
-            const snapped = Math.round(rawAngle / snapInterval) * snapInterval;
-
-            if (Math.abs(rawAngle - snapped) < snapThreshold) {{
-                gizmoAngle = snapped;
+    async function downloadImage(id, withAnno, event) {{
+        event.stopPropagation();
+        const status = document.getElementById('status');
+        status.style.display = 'block'; status.textContent = "Preparing High-Res Image...";
+        setTimeout(() => {{
+            const baseImg = document.getElementById(id === 'a' ? 'layer-top' : 'layer-bottom');
+            const filename = (id === 'a' ? nameA : nameB) + (withAnno ? "_annotated" : "");
+            if (!withAnno) {{
+                const link = document.createElement('a'); link.href = baseImg.src; link.download = filename + ".jpg"; link.click();
             }} else {{
-                gizmoAngle = rawAngle;
+                const out = document.createElement('canvas'); out.width = baseImg.naturalWidth; out.height = baseImg.naturalHeight;
+                const octx = out.getContext('2d'); octx.drawImage(baseImg, 0, 0);
+                octx.drawImage(annoMain, 0, 0, out.width, out.height);
+                const link = document.createElement('a'); link.href = out.toDataURL('image/jpeg', 0.85); link.download = filename + ".jpg"; link.click();
             }}
-            updateClip();
+            status.style.display = 'none';
+            document.querySelectorAll('.save-menu').forEach(m => m.style.display = 'none');
+        }}, 100);
+    }}
+
+    viewport.onpointerdown = (e) => {{
+        if (e.target.closest('.label') || e.target.closest('.toolbar') || e.target.closest('.mode-switcher')) return;
+        
+        e.preventDefault();
+        viewport.setPointerCapture(e.pointerId);
+        document.querySelectorAll('.save-menu').forEach(m => m.style.display = 'none');
+
+        if (currentTool !== 'none') {{
+            isMouseDown = true;
+            const rect = canvas.getBoundingClientRect();
+            lastX = (e.clientX - rect.left) / scale;
+            lastY = (e.clientY - rect.top) / scale;
+            
+            const brushSize = document.getElementById('brush-size').value;
+            const color = document.getElementById('color-picker').value;
+            ctx.beginPath();
+            ctx.arc(lastX * drawScale, lastY * drawScale, (brushSize * drawScale) / 2, 0, Math.PI * 2);
+            ctx.fillStyle = (currentTool === 'eraser') ? 'black' : color;
+            ctx.globalCompositeOperation = (currentTool === 'eraser') ? 'destination-out' : 'source-over';
+            ctx.fill();
+        }} else {{
+            if (e.target === centerHandle || e.target === rotateHandle) return;
+            isPanning = true;
+            startX = e.clientX - panX; startY = e.clientY - panY;
         }}
     }};
 
-    window.onpointerup = () => {{
-        isPanning = isDraggingGizmo = isRotatingGizmo = false;
+    viewport.onpointermove = (e) => {{
+        if (currentTool !== 'none') {{
+            customCursor.style.left = e.clientX + 'px';
+            customCursor.style.top = e.clientY + 'px';
+        }}
+
+        if (!isPanning && !isDraggingGizmo && !isRotatingGizmo && !(currentTool !== 'none' && isMouseDown)) return;
+        
+        e.preventDefault();
+
+        if (isPanning) {{
+            panX = e.clientX - startX; panY = e.clientY - startY; updateTransform();
+        }} else if (isDraggingGizmo) {{
+            const rect = canvas.getBoundingClientRect();
+            gizmoX = (e.clientX - rect.left) / scale; gizmoY = (e.clientY - rect.top) / scale; updateClip();
+        }} else if (isRotatingGizmo) {{
+            const rect = canvas.getBoundingClientRect();
+            const cx = rect.left + gizmoX * scale, cy = rect.top + gizmoY * scale;
+            const dx = e.clientX - cx, dy = e.clientY - cy;
+            let rawAngle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+            const snapped = Math.round(rawAngle / 45) * 45;
+            gizmoAngle = Math.abs(rawAngle - snapped) < 4 ? snapped : rawAngle;
+            updateClip();
+        }} else if (currentTool !== 'none' && isMouseDown) {{
+            const rect = canvas.getBoundingClientRect();
+            const currX = (e.clientX - rect.left) / scale, currY = (e.clientY - rect.top) / scale;
+            const brushSize = document.getElementById('brush-size').value;
+            const color = document.getElementById('color-picker').value;
+
+            ctx.beginPath();
+            ctx.moveTo(lastX * drawScale, lastY * drawScale);
+            ctx.lineTo(currX * drawScale, currY * drawScale);
+            ctx.globalCompositeOperation = (currentTool === 'eraser') ? 'destination-out' : 'source-over';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = brushSize * drawScale;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            lastX = currX; lastY = currY;
+        }}
     }};
+
+    const stopInteraction = (e) => {{ 
+        if (e && e.pointerId) viewport.releasePointerCapture(e.pointerId);
+        isPanning = isDraggingGizmo = isRotatingGizmo = isMouseDown = false; 
+    }};
+    viewport.onpointerup = stopInteraction;
+    viewport.onpointercancel = stopInteraction;
+    viewport.onlostpointercapture = stopInteraction;
+
+    centerHandle.onpointerdown = (e) => {{ isDraggingGizmo = true; centerHandle.setPointerCapture(e.pointerId); e.stopPropagation(); }};
+    rotateHandle.onpointerdown = (e) => {{ isRotatingGizmo = true; rotateHandle.setPointerCapture(e.pointerId); e.stopPropagation(); }};
 
     viewport.onwheel = (e) => {{
         e.preventDefault();
-        const delta = -e.deltaY;
-        const factor = Math.pow(1.1, delta / 100);
-        
+        const factor = Math.pow(1.1, -e.deltaY / 100);
         const rect = canvas.getBoundingClientRect();
-        const mouseX = (e.clientX - rect.left) / scale;
-        const mouseY = (e.clientY - rect.top) / scale;
-
+        const mouseX = (e.clientX - rect.left) / scale, mouseY = (e.clientY - rect.top) / scale;
         const oldScale = scale;
-        scale *= factor;
-        scale = Math.max(0.001, Math.min(100, scale));
-        
-        panX -= mouseX * (scale - oldScale);
-        panY -= mouseY * (scale - oldScale);
-        
+        scale = Math.max(0.001, Math.min(100, scale * factor));
+        panX -= mouseX * (scale - oldScale); panY -= mouseY * (scale - oldScale);
         updateTransform();
-    }};
-
-    window.onresize = () => {{
-        // Optional: Re-center on resize if you want, but might be annoying
-        updateTransform();
-        updateClip();
     }};
 </script>
 
